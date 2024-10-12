@@ -15,7 +15,7 @@ use byteorder::{BigEndian, ByteOrder, WriteBytesExt};
 use regex::Regex;
 
 use crate::data::value::{
-    DataValue, JsonData, Num, RegexWrapper, UuidWrapper, Validity, ValidityTs, Vector,
+    DataValue, JsonData, Num, RegexWrapper, UuidWrapper, UlidWrapper, Validity, ValidityTs, Vector,
 };
 
 const INIT_TAG: u8 = 0x00;
@@ -32,6 +32,7 @@ const LIST_TAG: u8 = 0x0A;
 const SET_TAG: u8 = 0x0B;
 const VLD_TAG: u8 = 0x0C;
 const JSON_TAG: u8 = 0x0D;
+const ULID_TAG: u8 = 0x0E;
 const BOT_TAG: u8 = 0xFF;
 
 const VEC_F32: u8 = 0x01;
@@ -93,6 +94,11 @@ pub(crate) trait MemCmpEncoder: Write {
                 self.write_u16::<BigEndian>(s_m).unwrap();
                 self.write_u32::<BigEndian>(s_l).unwrap();
                 self.write_all(s_rest.as_ref()).unwrap();
+            }
+            DataValue::Ulid(u) => {
+                self.write_u8(ULID_TAG).unwrap();
+                let s = u.0.to_bytes();
+                self.write_all(s.as_ref()).unwrap();
             }
             DataValue::Regex(rx) => {
                 self.write_u8(REGEX_TAG).unwrap();
@@ -290,6 +296,13 @@ impl DataValue {
                 s_rest.copy_from_slice(&uuid_data[8..]);
                 let uuid = uuid::Uuid::from_fields(s_l, s_m, s_h, &s_rest);
                 (DataValue::Uuid(UuidWrapper(uuid)), remaining)
+            }
+            ULID_TAG => {
+                let (ulid_data, remaining) = remaining.split_at(16);
+                let s = BigEndian::read_u128(&ulid_data[0..16]);
+                let s = s.to_be_bytes();
+                let ulid = ulid::Ulid::from_bytes(s);
+                (DataValue::Ulid(UlidWrapper(ulid)), remaining)
             }
             REGEX_TAG => {
                 let (bytes, remaining) = decode_bytes(remaining);

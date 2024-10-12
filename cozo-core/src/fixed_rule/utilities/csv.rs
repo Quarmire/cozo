@@ -13,7 +13,7 @@ use miette::{bail, ensure, IntoDiagnostic, Result};
 use smartstring::{LazyCompact, SmartString};
 
 use crate::data::expr::Expr;
-use crate::data::functions::{op_to_float, op_to_uuid, TERMINAL_VALIDITY};
+use crate::data::functions::{op_to_float, op_to_uuid, op_to_ulid, TERMINAL_VALIDITY};
 use crate::data::program::{FixedRuleOptionNotFoundError, WrongFixedRuleOptionError};
 use crate::data::relation::{ColType, NullableColType};
 use crate::data::symb::Symbol;
@@ -107,6 +107,16 @@ impl FixedRule for CsvReader {
                             ColType::Any | ColType::String => out_tuple.push(dv),
                             ColType::Uuid => out_tuple.push(match op_to_uuid(&[dv]) {
                                 Ok(uuid) => uuid,
+                                Err(err) => {
+                                    if typ.nullable {
+                                        DataValue::Null
+                                    } else {
+                                        bail!(err)
+                                    }
+                                }
+                            }),
+                            ColType::Ulid => out_tuple.push(match op_to_ulid(&[dv]) {
+                                Ok(ulid) => ulid,
                                 Err(err) => {
                                     if typ.nullable {
                                         DataValue::Null

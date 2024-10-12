@@ -26,12 +26,13 @@ use serde_json::{json, Value};
 use smartstring::SmartString;
 use unicode_normalization::UnicodeNormalization;
 use uuid::v1::Timestamp;
+use ulid;
 
 use crate::data::expr::Op;
 use crate::data::json::JsonValue;
 use crate::data::relation::VecElementType;
 use crate::data::value::{
-    DataValue, JsonData, Num, RegexWrapper, UuidWrapper, Validity, ValidityTs, Vector,
+    DataValue, JsonData, Num, RegexWrapper, UuidWrapper, UlidWrapper, Validity, ValidityTs, Vector,
 };
 
 macro_rules! define_op {
@@ -222,6 +223,9 @@ fn to_json(d: &DataValue) -> JsonValue {
         DataValue::Uuid(u) => {
             json!(u.0.as_bytes())
         }
+        DataValue::Ulid(u) => {
+            json!(u.0.to_bytes())
+        }
         DataValue::Regex(r) => {
             json!(r.0.as_str())
         }
@@ -306,6 +310,11 @@ pub(crate) fn op_eq(args: &[DataValue]) -> Result<DataValue> {
 define_op!(OP_IS_UUID, 1, false);
 pub(crate) fn op_is_uuid(args: &[DataValue]) -> Result<DataValue> {
     Ok(DataValue::from(matches!(args[0], DataValue::Uuid(_))))
+}
+
+define_op!(OP_IS_ULID, 1, false);
+pub(crate) fn op_is_ulid(args: &[DataValue]) -> Result<DataValue> {
+    Ok(DataValue::from(matches!(args[0], DataValue::Ulid(_))))
 }
 
 define_op!(OP_IS_JSON, 1, false);
@@ -1925,6 +1934,7 @@ pub(crate) fn op_to_bool(args: &[DataValue]) -> Result<DataValue> {
         DataValue::Str(s) => !s.is_empty(),
         DataValue::Bytes(b) => !b.is_empty(),
         DataValue::Uuid(u) => !u.0.is_nil(),
+        DataValue::Ulid(u) => !u.0.is_nil(),
         DataValue::Regex(r) => !r.0.as_str().is_empty(),
         DataValue::List(l) => !l.is_empty(),
         DataValue::Set(s) => !s.is_empty(),
@@ -1951,6 +1961,7 @@ pub(crate) fn op_to_unity(args: &[DataValue]) -> Result<DataValue> {
         DataValue::Str(s) => i64::from(!s.is_empty()),
         DataValue::Bytes(b) => i64::from(!b.is_empty()),
         DataValue::Uuid(u) => i64::from(!u.0.is_nil()),
+        DataValue::Ulid(u) => i64::from(!u.0.is_nil()),
         DataValue::Regex(r) => i64::from(!r.0.as_str().is_empty()),
         DataValue::List(l) => i64::from(!l.is_empty()),
         DataValue::Set(s) => i64::from(!s.is_empty()),
@@ -2438,6 +2449,18 @@ pub(crate) fn op_to_uuid(args: &[DataValue]) -> Result<DataValue> {
     }
 }
 
+define_op!(OP_TO_ULID, 1, false);
+pub(crate) fn op_to_ulid(args: &[DataValue]) -> Result<DataValue> {
+    match &args[0] {
+        d @ DataValue::Ulid(_u) => Ok(d.clone()),
+        DataValue::Str(s) => {
+            let id = ulid::Ulid::from_string(s).map_err(|_| miette!("invalid ULID"))?;
+            Ok(DataValue::ulid(id))
+        }
+        _ => bail!("'to_ulid' requires a string"),
+    }
+}
+
 define_op!(OP_NOW, 0, false);
 #[cfg(target_arch = "wasm32")]
 pub(crate) fn op_now(_args: &[DataValue]) -> Result<DataValue> {
@@ -2565,6 +2588,22 @@ pub(crate) fn op_uuid_timestamp(args: &[DataValue]) -> Result<DataValue> {
             }
         },
         _ => bail!("not an UUID"),
+    })
+}
+
+define_op!(OP_RAND_ULID, 0, false);
+pub(crate) fn op_rand_ulid(_args: &[DataValue]) -> Result<DataValue> {
+    let id = ulid::Ulid::new();
+    Ok(DataValue::ulid(id))
+}
+
+define_op!(OP_ULID_TIMESTAMP, 0, false);
+pub(crate) fn op_ulid_timestamp(args: &[DataValue]) -> Result<DataValue> {
+    Ok(match &args[0] {
+        DataValue::Ulid(UlidWrapper(id)) => {
+            (id.timestamp_ms() as f64).into()
+        },
+        _ => bail!("not an ULID"),
     })
 }
 

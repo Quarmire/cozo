@@ -1403,6 +1403,15 @@ fn test_uuid() {
 }
 
 #[test]
+fn test_ulid() {
+    let u = op_rand_ulid(&[]).unwrap();
+    assert!(op_is_ulid(&[u]).unwrap().get_bool().unwrap());
+    assert!(op_ulid_timestamp(&[]).unwrap().get_float().is_some());
+    assert!(op_to_ulid(&[DataValue::from("")]).is_err());
+    assert!(op_to_ulid(&[DataValue::from("01D39ZY06FGSCTVN4T2V9PKHFZ")]).is_ok());
+}
+
+#[test]
 fn test_now() {
     let now = op_now(&[]).unwrap();
     assert!(matches!(now, DataValue::Num(_)));

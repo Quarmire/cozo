@@ -145,6 +145,7 @@ fn value2js<'a>(cx: &mut impl Context<'a>, val: &DataValue) -> JsResult<'a, JsVa
             JsBuffer::external(cx, b).as_value(cx)
         }
         DataValue::Uuid(uuid) => cx.string(uuid.0.to_string()).as_value(cx),
+        DataValue::Ulid(ulid) => cx.string(ulid.0.to_string()).as_value(cx),
         DataValue::Regex(rx) => cx.string(rx.0.to_string()).as_value(cx),
         DataValue::List(l) => {
             let target_l = cx.empty_array();

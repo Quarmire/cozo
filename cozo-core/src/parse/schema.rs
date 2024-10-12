@@ -111,6 +111,7 @@ fn parse_type_inner(pair: Pair<'_>) -> Result<ColType> {
         Rule::string_type => ColType::String,
         Rule::bytes_type => ColType::Bytes,
         Rule::uuid_type => ColType::Uuid,
+        Rule::ulid_type => ColType::Ulid,
         Rule::json_type => ColType::Json,
         Rule::validity_type => ColType::Validity,
         Rule::list_type => {

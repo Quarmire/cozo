@@ -26,6 +26,7 @@ use sha2::digest::FixedOutput;
 use sha2::{Digest, Sha256};
 use smartstring::{LazyCompact, SmartString};
 use uuid::Uuid;
+use ulid::Ulid;
 
 /// UUID value in the database
 #[derive(Clone, Hash, Eq, PartialEq, serde_derive::Deserialize, serde_derive::Serialize)]
@@ -45,6 +46,16 @@ impl Ord for UuidWrapper {
             .then_with(|| s_m.cmp(&o_m))
             .then_with(|| s_l.cmp(&o_l))
             .then_with(|| s_rest.cmp(o_rest))
+    }
+}
+
+/// ULID value in the database
+#[derive(Clone, Hash, Eq, PartialEq, Ord, serde_derive::Deserialize, serde_derive::Serialize)]
+pub struct UlidWrapper(pub Ulid);
+
+impl PartialOrd<Self> for UlidWrapper {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
@@ -157,6 +168,8 @@ pub enum DataValue {
     Bytes(Vec<u8>),
     /// UUID
     Uuid(UuidWrapper),
+    /// ULID
+    Ulid(UlidWrapper),
     /// Regex, used internally only
     Regex(RegexWrapper),
     /// list
@@ -618,6 +631,10 @@ impl Display for DataValue {
                 let us = u.0.to_string();
                 write!(f, "to_uuid({us:?})")
             }
+            DataValue::Ulid(u) => {
+                let us = u.0.to_string();
+                write!(f, "to_ulid({us:?})")
+            }
             DataValue::Regex(rx) => {
                 write!(f, "regex({:?})", rx.0.as_str())
             }
@@ -706,6 +723,16 @@ impl DataValue {
         match self {
             DataValue::Uuid(UuidWrapper(uuid)) => Some(*uuid),
             DataValue::Str(s) => uuid::Uuid::try_parse(s).ok(),
+            _ => None,
+        }
+    }
+    pub(crate) fn ulid(ulid: Ulid) -> Self {
+        Self::Ulid(UlidWrapper(ulid))
+    }
+    pub(crate) fn get_ulid(&self) -> Option<Ulid> {
+        match self {
+            DataValue::Ulid(UlidWrapper(ulid)) => Some(*ulid),
+            DataValue::Str(s) => ulid::Ulid::from_string(s).ok(),
             _ => None,
         }
     }

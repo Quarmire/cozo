@@ -21,7 +21,7 @@ use smartstring::{LazyCompact, SmartString};
 use thiserror::Error;
 
 use crate::data::expr::Expr;
-use crate::data::value::{DataValue, JsonData, UuidWrapper, Validity, ValidityTs, Vector};
+use crate::data::value::{DataValue, JsonData, UuidWrapper, UlidWrapper, Validity, ValidityTs, Vector};
 use crate::Num;
 
 #[derive(Debug, Clone, Eq, PartialEq, serde_derive::Deserialize, serde_derive::Serialize)]
@@ -40,6 +40,7 @@ impl Display for NullableColType {
             ColType::String => f.write_str("String")?,
             ColType::Bytes => f.write_str("Bytes")?,
             ColType::Uuid => f.write_str("Uuid")?,
+            ColType::Ulid => f.write_str("Ulid")?,
             ColType::Validity => f.write_str("Validity")?,
             ColType::List { eltype, len } => {
                 f.write_str("[")?;
@@ -89,6 +90,7 @@ pub enum ColType {
     String,
     Bytes,
     Uuid,
+    Ulid,
     List {
         eltype: Box<NullableColType>,
         len: Option<usize>,
@@ -235,6 +237,7 @@ impl NullableColType {
                 _ => bail!(make_err()),
             },
             ColType::Uuid => DataValue::Uuid(UuidWrapper(data.get_uuid().ok_or_else(make_err)?)),
+            ColType::Ulid => DataValue::Ulid(UlidWrapper(data.get_ulid().ok_or_else(make_err)?)),
             ColType::List { eltype, len } => {
                 if let DataValue::List(l) = data {
                     if let Some(expected) = len {
@@ -410,6 +413,9 @@ impl NullableColType {
                 }
                 DataValue::Uuid(u) => {
                     json!(u.0.as_bytes())
+                }
+                DataValue::Ulid(u) => {
+                    json!(u.0.to_bytes())
                 }
                 DataValue::Regex(r) => {
                     json!(r.0.as_str())

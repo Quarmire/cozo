@@ -47,7 +47,7 @@ use miette::{
 };
 use serde_json::json;
 
-pub use data::value::{DataValue, Num, RegexWrapper, UuidWrapper, Validity, ValidityTs};
+pub use data::value::{DataValue, Num, RegexWrapper, UuidWrapper, UlidWrapper, Validity, ValidityTs};
 pub use fixed_rule::{FixedRule, FixedRuleInputRelation, FixedRulePayload};
 pub use runtime::db::Db;
 pub use runtime::db::NamedRows;

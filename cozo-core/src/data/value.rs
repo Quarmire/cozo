@@ -729,7 +729,8 @@ impl DataValue {
     pub(crate) fn ulid(ulid: Ulid) -> Self {
         Self::Ulid(UlidWrapper(ulid))
     }
-    pub(crate) fn get_ulid(&self) -> Option<Ulid> {
+    /// Returns ULID if this one is.
+    pub fn get_ulid(&self) -> Option<Ulid> {
         match self {
             DataValue::Ulid(UlidWrapper(ulid)) => Some(*ulid),
             DataValue::Str(s) => ulid::Ulid::from_string(s).ok(),
